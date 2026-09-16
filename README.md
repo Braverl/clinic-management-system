@@ -65,7 +65,7 @@ npm run build
 php artisan serve
 ```
 
-> The repository also ships a ready-made database dump (`clinic_system.sql`). Import it into a `clinic_system` MySQL database if you prefer to start with demo records.
+> A local database dump for demo data is available on request or from your local backup; it is intentionally **not** included in this repository (the dump contains personally-identifiable account data). To start fresh, run `php artisan migrate --seed` instead.
 
 ### Demo Credentials
 | Role     | Email                       | Password |

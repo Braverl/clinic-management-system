@@ -12,6 +12,7 @@
 /.vscode
 /.zed
 /auth.json
+/clinic_system.sql
 /node_modules
 /public/build
 /public/hot
