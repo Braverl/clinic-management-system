@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="256" height="256" role="img" aria-label="Clinic logo">
+  <defs>
+    <linearGradient id="crossGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FB923C"/>
+      <stop offset="1" stop-color="#EA580C"/>
+    </linearGradient>
+    <filter id="shadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" flood-color="#1E293B" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+  <!-- Rounded medical cross -->
+  <path d="M23 14 A9 9 0 0 1 41 14 L41 23 L50 23 A9 9 0 0 1 50 41 L41 41 L41 50 A9 9 0 0 1 23 50 L23 41 L14 41 A9 9 0 0 1 14 23 L23 23 Z" fill="url(#crossGrad)" filter="url(#shadow)"/>
+  <!-- Heartbeat line -->
+  <path d="M14 32 L21 32 L23 35 L26 29 L28 32 L31 32 L34 16 L38 48 L41 32 L44 32 L45.5 30 L47.5 33 L50 32" fill="none" stroke="#1E293B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

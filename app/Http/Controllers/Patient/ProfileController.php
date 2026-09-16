@@ -113,4 +113,9 @@ class ProfileController extends Controller
         
         return view('patient.profile.medical-history', compact('medicalRecords'));
     }
+
+    public function about()
+    {
+        return view('patient.about');
+    }
 }

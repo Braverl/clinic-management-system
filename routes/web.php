@@ -69,6 +69,27 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
 
+    // Settings & Help (all roles)
+    Route::get('/settings', [App\Http\Controllers\SettingsController::class, 'index'])->name('settings.index');
+    Route::post('/settings', [App\Http\Controllers\SettingsController::class, 'update'])->name('settings.update');
+
+    Route::get('/help', [App\Http\Controllers\HelpController::class, 'index'])->name('help.index');
+
+    // Search (all roles)
+    Route::get('/search', [App\Http\Controllers\SearchController::class, 'index'])->name('search.index');
+    Route::get('/search/live', [App\Http\Controllers\SearchController::class, 'globalSearch'])->name('search.live');
+
+    // Chat (all roles)
+    Route::get('/chat', [App\Http\Controllers\ChatController::class, 'index'])->name('chat.index');
+    Route::get('/chat/conversations', [App\Http\Controllers\ChatController::class, 'getConversations'])->name('chat.conversations');
+    Route::get('/chat/conversations/{conversation}/messages', [App\Http\Controllers\ChatController::class, 'getMessages'])->name('chat.messages');
+    Route::post('/chat/send', [App\Http\Controllers\ChatController::class, 'sendMessage'])->name('chat.send');
+    Route::post('/chat/edit', [App\Http\Controllers\ChatController::class, 'editMessage'])->name('chat.edit');
+    Route::post('/chat/unsend/{message}', [App\Http\Controllers\ChatController::class, 'unsendMessage'])->name('chat.unsend');
+    Route::post('/chat/delete', [App\Http\Controllers\ChatController::class, 'deleteMessage'])->name('chat.delete');
+    Route::get('/chat/unread-count', [App\Http\Controllers\ChatController::class, 'unreadCount'])->name('chat.unread-count');
+    Route::get('/chat/search-users', [App\Http\Controllers\ChatController::class, 'searchUsers'])->name('chat.search-users');
+
     Route::get('/get-doctor-schedule/{doctorId}/{date}', [PatientAppointmentController::class, 'getDoctorSchedule'])->name('get-doctor-schedule');
 });
 
@@ -184,4 +205,5 @@ Route::prefix('patient')->middleware(['auth', 'role:patient'])->name('patient.')
     Route::post('/profile/update', [PatientProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/change-password', [PatientProfileController::class, 'changePassword'])->name('profile.change-password');
     Route::get('/medical-history', [PatientProfileController::class, 'medicalHistory'])->name('medical-history');
+    Route::get('/about', [PatientProfileController::class, 'about'])->name('about');
 });

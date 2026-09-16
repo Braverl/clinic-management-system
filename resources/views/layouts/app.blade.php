@@ -10,7 +10,10 @@
     <meta http-equiv="Expires" content="0">
     <meta http-equiv="Cache-Control" content="no-store">
     <title>@yield('title', 'Clinic Management System')</title>
-    
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
@@ -124,13 +127,25 @@
                     <i class="fas fa-bars"></i>
                 </button>
                 <a class="navbar-brand fw-bold" href="{{ url('/') }}">
-                    <i class="fas fa-hospital-user me-2"></i>ClinicSystem
+                    <img src="{{ asset('logo.svg') }}" alt="ClinicSystem Logo" class="nav-logo">
+                    Clinic<span class="text-warning">System</span>
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav ms-auto">
+                    <form class="navbar-search ms-lg-3 me-auto order-lg-2 d-none d-lg-block" action="{{ route('search.index') }}" method="GET" autocomplete="off">
+                        <i class="fas fa-search"></i>
+                        <input type="text" name="query" class="form-control" placeholder="Search patients, doctors, appointments..." id="navGlobalSearch" value="{{ request('query') }}">
+                        <div class="navbar-search-results" id="navGlobalSearchResults"></div>
+                    </form>
+                    <ul class="navbar-nav ms-auto align-items-lg-center">
+                        <li class="nav-item me-1">
+                            <a class="nav-link chat-nav-link" href="{{ route('chat.index') }}" title="Messages">
+                                <i class="fas fa-comments"></i>
+                                <span class="chat-unread-pill" id="chatUnreadBadge">0</span>
+                            </a>
+                        </li>
                         <li class="nav-item dropdown me-2">
                             <a class="nav-link dropdown-toggle position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fas fa-bell"></i>
@@ -194,6 +209,13 @@
                                 <li><a class="dropdown-item" href="{{ route('patient.profile.index') }}"><i class="fas fa-user me-2"></i>Profile</a></li>
                                 @endif
                                 <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ route('settings.index') }}"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                                <li><a class="dropdown-item" href="{{ route('help.index') }}"><i class="fas fa-question-circle me-2"></i>Help Center</a></li>
+                                <li><a class="dropdown-item" href="{{ route('chat.index') }}"><i class="fas fa-comments me-2"></i>Messages</a></li>
+                                @if(auth()->user()->isPatient())
+                                <li><a class="dropdown-item" href="{{ route('patient.about') }}"><i class="fas fa-info-circle me-2"></i>About the Clinic</a></li>
+                                @endif
+                                <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form method="POST" action="{{ route('logout') }}" id="logout-form">
                                         @csrf
@@ -216,43 +238,63 @@
                 $sidebarLinks = [];
                 if(auth()->user()->isAdmin()) {
                     $sidebarLinks = [
-                        ['url' => route('admin.dashboard'), 'icon' => 'fas fa-tachometer-alt', 'label' => 'Dashboard'],
-                        ['url' => route('admin.doctors.index'), 'icon' => 'fas fa-user-md', 'label' => 'Doctors'],
-                        ['url' => route('admin.patients.index'), 'icon' => 'fas fa-users', 'label' => 'Patients'],
-                        ['url' => route('admin.appointments.index'), 'icon' => 'fas fa-calendar-check', 'label' => 'Appointments'],
-                        ['url' => route('admin.departments.index'), 'icon' => 'fas fa-building', 'label' => 'Departments'],
-                        ['url' => route('admin.payments.index'), 'icon' => 'fas fa-credit-card', 'label' => 'Billing & Payments'],
-                        ['url' => route('admin.reports.index'), 'icon' => 'fas fa-chart-line', 'label' => 'Reports'],
-                        ['url' => route('notifications.index'), 'icon' => 'fas fa-bell', 'label' => 'Notifications'],
-                        ['url' => route('admin.profile.index'), 'icon' => 'fas fa-user-shield', 'label' => 'My Profile'],
+                        ['route' => 'admin.dashboard', 'icon' => 'fas fa-tachometer-alt', 'label' => 'Dashboard'],
+                        ['route' => 'admin.doctors.index', 'icon' => 'fas fa-user-md', 'label' => 'Doctors'],
+                        ['route' => 'admin.patients.index', 'icon' => 'fas fa-users', 'label' => 'Patients'],
+                        ['route' => 'admin.appointments.index', 'icon' => 'fas fa-calendar-check', 'label' => 'Appointments'],
+                        ['route' => 'admin.departments.index', 'icon' => 'fas fa-building', 'label' => 'Departments'],
+                        ['route' => 'admin.payments.index', 'icon' => 'fas fa-credit-card', 'label' => 'Billing & Payments'],
+                        ['route' => 'admin.reports.index', 'icon' => 'fas fa-chart-line', 'label' => 'Reports'],
+                        ['route' => 'notifications.index', 'icon' => 'fas fa-bell', 'label' => 'Notifications'],
+                        ['route' => 'admin.profile.index', 'icon' => 'fas fa-user-shield', 'label' => 'My Profile'],
+                        ['route' => 'search.index', 'icon' => 'fas fa-search', 'label' => 'Search'],
+                        ['route' => 'chat.index', 'icon' => 'fas fa-comments', 'label' => 'Messages'],
+                        ['route' => 'settings.index', 'icon' => 'fas fa-cog', 'label' => 'Settings'],
+                        ['route' => 'help.index', 'icon' => 'fas fa-life-ring', 'label' => 'Help Center'],
                     ];
                 } elseif(auth()->user()->isDoctor()) {
                     $sidebarLinks = [
-                        ['url' => route('doctor.dashboard'), 'icon' => 'fas fa-tachometer-alt', 'label' => 'Dashboard'],
-                        ['url' => route('doctor.appointments.index'), 'icon' => 'fas fa-calendar-check', 'label' => 'Appointments'],
-                        ['url' => route('doctor.medical-records.index'), 'icon' => 'fas fa-notes-medical', 'label' => 'Medical Records'],
-                        ['url' => route('notifications.index'), 'icon' => 'fas fa-bell', 'label' => 'Notifications'],
-                        ['url' => route('doctor.profile.index'), 'icon' => 'fas fa-user-md', 'label' => 'My Profile'],
+                        ['route' => 'doctor.dashboard', 'icon' => 'fas fa-tachometer-alt', 'label' => 'Dashboard'],
+                        ['route' => 'doctor.appointments.index', 'icon' => 'fas fa-calendar-check', 'label' => 'Appointments'],
+                        ['route' => 'doctor.medical-records.index', 'icon' => 'fas fa-notes-medical', 'label' => 'Medical Records'],
+                        ['route' => 'notifications.index', 'icon' => 'fas fa-bell', 'label' => 'Notifications'],
+                        ['route' => 'doctor.profile.index', 'icon' => 'fas fa-user-md', 'label' => 'My Profile'],
+                        ['route' => 'search.index', 'icon' => 'fas fa-search', 'label' => 'Search'],
+                        ['route' => 'chat.index', 'icon' => 'fas fa-comments', 'label' => 'Messages'],
+                        ['route' => 'settings.index', 'icon' => 'fas fa-cog', 'label' => 'Settings'],
+                        ['route' => 'help.index', 'icon' => 'fas fa-life-ring', 'label' => 'Help Center'],
                     ];
                 } elseif(auth()->user()->isPatient()) {
                     $sidebarLinks = [
-                        ['url' => route('patient.dashboard'), 'icon' => 'fas fa-tachometer-alt', 'label' => 'Dashboard'],
-                        ['url' => route('patient.appointments.index'), 'icon' => 'fas fa-calendar-check', 'label' => 'My Appointments'],
-                        ['url' => route('patient.appointments.book'), 'icon' => 'fas fa-plus-circle', 'label' => 'Book Appointment'],
-                        ['url' => route('patient.payments.index'), 'icon' => 'fas fa-credit-card', 'label' => 'My Bills & Payments'],
-                        ['url' => route('patient.medical-history'), 'icon' => 'fas fa-file-medical', 'label' => 'Medical History'],
-                        ['url' => route('notifications.index'), 'icon' => 'fas fa-bell', 'label' => 'Notifications'],
-                        ['url' => route('patient.profile.index'), 'icon' => 'fas fa-user-circle', 'label' => 'Profile'],
+                        ['route' => 'patient.dashboard', 'icon' => 'fas fa-tachometer-alt', 'label' => 'Dashboard'],
+                        ['route' => 'patient.appointments.index', 'icon' => 'fas fa-calendar-check', 'label' => 'My Appointments'],
+                        ['route' => 'patient.appointments.book', 'icon' => 'fas fa-plus-circle', 'label' => 'Book Appointment'],
+                        ['route' => 'patient.payments.index', 'icon' => 'fas fa-credit-card', 'label' => 'My Bills & Payments'],
+                        ['route' => 'patient.medical-history', 'icon' => 'fas fa-file-medical', 'label' => 'Medical History'],
+                        ['route' => 'notifications.index', 'icon' => 'fas fa-bell', 'label' => 'Notifications'],
+                        ['route' => 'patient.profile.index', 'icon' => 'fas fa-user-circle', 'label' => 'Profile'],
+                        ['route' => 'search.index', 'icon' => 'fas fa-search', 'label' => 'Search'],
+                        ['route' => 'chat.index', 'icon' => 'fas fa-comments', 'label' => 'Messages'],
+                        ['route' => 'settings.index', 'icon' => 'fas fa-cog', 'label' => 'Settings'],
+                        ['route' => 'help.index', 'icon' => 'fas fa-life-ring', 'label' => 'Help Center'],
+                        ['route' => 'patient.about', 'icon' => 'fas fa-info-circle', 'label' => 'About the Clinic'],
                     ];
                 }
             @endphp
             
             <div class="sidebar" id="sidebar">
+                <div class="sidebar-brand d-flex align-items-center gap-2">
+                    <img src="{{ asset('logo.svg') }}" alt="ClinicSystem" width="36" height="36" class="sidebar-logo rounded-3">
+                    <div>
+                        <strong class="d-block lh-1">Clinic<span class="text-warning">System</span></strong>
+                        <small class="text-muted">E-Health Platform</small>
+                    </div>
+                </div>
                 <div class="position-sticky pt-3">
                     <ul class="nav flex-column">
                         @foreach($sidebarLinks as $link)
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->url() == $link['url'] ? 'active bg-primary text-white' : '' }}" href="{{ $link['url'] }}">
+                            <a class="nav-link {{ request()->routeIs($link['route']) ? 'active bg-primary text-white' : '' }}" href="{{ route($link['route']) }}">
                                 <i class="{{ $link['icon'] }} me-2"></i>{{ $link['label'] }}
                             </a>
                         </li>
@@ -319,7 +361,8 @@
             <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
                 <div class="container-fluid">
                     <a class="navbar-brand fw-bold" href="{{ url('/') }}">
-                        <i class="fas fa-hospital-user me-2"></i>ClinicSystem
+                        <img src="{{ asset('logo.svg') }}" alt="ClinicSystem Logo" class="nav-logo">
+                        Clinic<span class="text-warning">System</span>
                     </a>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#guestNavbar">
                         <span class="navbar-toggler-icon"></span>
@@ -480,7 +523,120 @@
         updateNotificationBadge();
         setInterval(updateNotificationBadge, 30000);
 
-        
+        // Global navbar search (live suggestions)
+        @php
+            $navUser = auth()->user();
+            $navRole = $navUser ? $navUser->role : null;
+            $navUrlMap = [];
+            if ($navRole === 'admin') {
+                $navUrlMap = [ 'patient-view' => route('admin.patients.show', ['patient' => '__ID__']), 'doctor-view' => route('admin.doctors.edit', ['doctor' => '__ID__']), 'appt-view' => route('admin.appointments.show', ['appointment' => '__ID__']) ];
+            } elseif ($navRole === 'doctor') {
+                $navUrlMap = [ 'patient-view' => route('admin.patients.show', ['patient' => '__ID__']), 'doctor-view' => route('doctor.patients.history', ['patient' => '__ID__']), 'appt-view' => route('doctor.appointments.show', ['appointment' => '__ID__']) ];
+            } elseif ($navRole === 'patient') {
+                $navUrlMap = [ 'patient-view' => route('admin.patients.show', ['patient' => '__ID__']), 'doctor-view' => route('doctor.patients.history', ['patient' => '__ID__']), 'appt-view' => route('admin.appointments.show', ['appointment' => '__ID__']) ];
+            }
+        @endphp
+        $('#navGlobalSearch').on('keyup', function() {
+            const query = $(this).val().trim();
+            const $results = $('#navGlobalSearchResults');
+
+            if (query.length < 2) {
+                $results.removeClass('show').empty();
+                return;
+            }
+
+            clearTimeout(window.__navSearchTimer);
+            window.__navSearchTimer = setTimeout(function() {
+                $.ajax({
+                    url: '{{ route("search.live") }}',
+                    method: 'GET',
+                    data: { query: query },
+                    success: function(response) {
+                        const groups = response.results || {};
+                        const urlMap = @json($navUrlMap);
+                        const icons = { patient: 'fas fa-user', doctor: 'fas fa-user-md', appointment: 'fas fa-calendar-check' };
+                        const types = { patient: 'Patient', doctor: 'Doctor', appointment: 'Appointment' };
+                        let items = [];
+
+                        (groups.patients || []).forEach(p => items.push({ title: p.name, sub: p.email, type: 'patient', id: p.id }));
+                        (groups.doctors || []).forEach(d => items.push({ title: d.name, sub: d.specialization || '', type: 'doctor', id: d.id }));
+                        (groups.appointments || []).forEach(a => items.push({ title: a.number, sub: (a.patient || a.doctor || ''), type: 'appointment', id: a.id }));
+
+                        let html = '';
+                        items.slice(0, 6).forEach(function(item) {
+                            let url = urlMap[item.type === 'patient' ? 'patient-view' : item.type === 'doctor' ? 'doctor-view' : 'appt-view'] || '#';
+                            url = url.replace('__ID__', item.id);
+                            html += `
+                                <a href="${url}" class="ns-result" style="color: var(--gray-700); text-decoration: none;">
+                                    <i class="${icons[item.type] || 'fas fa-file'}"></i>
+                                    <div>
+                                        <div class="fw-semibold" style="font-size: .85rem;">${item.title}</div>
+                                        <small>${types[item.type]}${item.sub ? ' &middot; ' + item.sub : ''}</small>
+                                    </div>
+                                </a>`;
+                        });
+
+                        if (items.length === 0) {
+                            html = '<div class="ns-empty">No results found</div>';
+                        } else {
+                            html += '<a href="{{ route("search.index") }}?query=' + encodeURIComponent(query) + '" class="ns-result"><i class="fas fa-arrow-right"></i><div>See all results</div></a>';
+                        }
+
+                        $results.html(html).addClass('show');
+                    }
+                });
+            }, 300);
+        });
+
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('.navbar-search').length) {
+                $('#navGlobalSearchResults').removeClass('show');
+            }
+        });
+
+        // Chat unread badge polling (green WhatsApp-style badge in navbar)
+        function updateChatBadge() {
+            if (!$('#chatUnreadBadge').length) return;
+            $.ajax({
+                url: '{{ route("chat.unread-count") }}',
+                method: 'GET',
+                success: function(response) {
+                    const $badge = $('#chatUnreadBadge');
+                    if (response.count > 0) {
+                        $badge.text(response.count > 9 ? '9+' : response.count).css('display', 'flex');
+                        if (response.count !== window.__lastChatCount && window.__lastChatCount !== undefined) {
+                            try { playNotificationSound(); } catch (e) {}
+                        }
+                        window.__lastChatCount = response.count;
+                    } else {
+                        $badge.hide();
+                        window.__lastChatCount = 0;
+                    }
+                }
+            });
+        }
+
+        updateChatBadge();
+        setInterval(updateChatBadge, 10000);
+
+        // Theme preference from Settings
+        try {
+            const savedTheme = @json($navUser->theme ?? 'light');
+            if (savedTheme === 'dark') {
+                $('body').addClass('dark-mode');
+            } else if (savedTheme === 'system') {
+                const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+                if (prefersDark && prefersDark.matches) {
+                    $('body').addClass('dark-mode');
+                }
+            }
+        } catch (e) {}
+
+        // SVG logo fallback
+        $('img[src$=".svg"]').on('error', function() {
+            $(this).hide();
+        });
+
     // Prevent back button after logout
     (function() {
         // Check if user is not logged in (by checking if there's no auth user element)
