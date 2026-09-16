@@ -78,6 +78,41 @@
                     </div>
                     @endif
                     
+                    <div class="alert {{ $appointment->payment ? 'alert-success' : 'alert-secondary' }} mt-3 border-0 shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1"><i class="fas fa-credit-card me-2"></i>Billing Status</h6>
+                                @if($appointment->payment)
+                                <span class="badge bg-{{ $appointment->payment->status === 'completed' ? 'success' : 'warning' }} text-capitalize">{{ $appointment->payment->status }}</span>
+                                <span class="ms-2"><strong class="text-success">${{ number_format($appointment->payment->amount, 2) }}</strong></span>
+                                @else
+                                <span class="badge bg-secondary">Unpaid</span>
+                                @if(in_array($appointment->status, ['confirmed', 'completed']))
+                                <small class="d-block text-muted mt-1">Consultation fee: ${{ number_format($appointment->doctor->consultation_fee, 2) }}</small>
+                                @else
+                                <small class="d-block text-muted mt-1">Payment will be available after the appointment is confirmed.</small>
+                                @endif
+                                @endif
+                            </div>
+                            @if($appointment->payment)
+                            <div class="d-flex gap-2">
+                                @if($appointment->payment->status === 'completed')
+                                <a href="{{ route('patient.payments.invoice', $appointment->payment) }}" class="btn btn-sm btn-success">
+                                    <i class="fas fa-download me-1"></i>Invoice
+                                </a>
+                                @endif
+                                <a href="{{ route('patient.payments.show', $appointment->payment) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i>Details
+                                </a>
+                            </div>
+                            @elseif(in_array($appointment->status, ['confirmed', 'completed']))
+                            <a href="{{ route('patient.payments.create', $appointment) }}" class="btn btn-sm btn-success">
+                                <i class="fas fa-credit-card me-1"></i>Pay Now
+                            </a>
+                            @endif
+                        </div>
+                    </div>
+                    
                     <div class="d-flex justify-content-between mt-4">
                         <a href="{{ route('patient.appointments.index') }}" class="btn btn-secondary">
                             <i class="fas fa-arrow-left me-2"></i>Back

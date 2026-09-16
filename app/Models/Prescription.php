@@ -2,26 +2,21 @@
 
 namespace App\Models;
 
+use App\Concerns\GeneratesBusinessNumber;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Prescription extends Model
 {
-    use HasFactory;
+    use HasFactory, GeneratesBusinessNumber;
+
+    protected static $businessNumberPrefix = 'RX';
+    protected static $businessNumberColumn = 'prescription_number';
 
     protected $fillable = [
         'prescription_number', 'medical_record_id', 'medication_name',
         'dosage', 'frequency', 'duration', 'instructions'
     ];
-
-    protected static function boot()
-    {
-        parent::boot();
-        
-        static::creating(function ($prescription) {
-            $prescription->prescription_number = 'RX-' . strtoupper(uniqid());
-        });
-    }
 
     public function medicalRecord()
     {

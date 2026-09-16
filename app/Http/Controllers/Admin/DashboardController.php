@@ -45,13 +45,25 @@ class DashboardController extends Controller
         
         // Chart data - last 7 days appointments
         $chartData = [];
+        $startDate = Carbon::now()->subDays(6)->startOfDay();
+
+        $appointmentsByDay = Appointment::where('appointment_date', '>=', $startDate->toDateString())
+            ->selectRaw('appointment_date as date, COUNT(*) as total')
+            ->groupBy('appointment_date')
+            ->pluck('total', 'date');
+
+        $revenueByDay = Payment::where('status', 'completed')
+            ->where('created_at', '>=', $startDate)
+            ->selectRaw('DATE(created_at) as date, SUM(amount) as total')
+            ->groupByRaw('DATE(created_at)')
+            ->pluck('total', 'date');
+
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::now()->subDays($i);
+            $key = $date->format('Y-m-d');
             $chartData['labels'][] = $date->format('M d');
-            $chartData['appointments'][] = Appointment::whereDate('appointment_date', $date)->count();
-            $chartData['revenue'][] = Payment::whereDate('created_at', $date)
-                ->where('status', 'completed')
-                ->sum('amount');
+            $chartData['appointments'][] = (int) ($appointmentsByDay[$key] ?? 0);
+            $chartData['revenue'][] = (float) ($revenueByDay[$key] ?? 0);
         }
         
         return view('admin.dashboard', compact(

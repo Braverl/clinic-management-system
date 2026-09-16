@@ -25,10 +25,13 @@ class AppointmentController extends Controller
         
         if ($request->has('search') && $request->search) {
             $search = $request->search;
-            $query->whereHas('patient.user', function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%");
-            })->orWhereHas('doctor.user', function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('patient.user', function ($userQuery) use ($search) {
+                    $userQuery->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                })->orWhereHas('doctor.user', function ($userQuery) use ($search) {
+                    $userQuery->where('name', 'like', "%{$search}%");
+                })->orWhere('appointment_number', 'like', "%{$search}%");
             });
         }
         
@@ -60,7 +63,15 @@ class AppointmentController extends Controller
             'status' => 'required|in:pending,confirmed,completed,cancelled,rejected',
             'cancellation_reason' => 'required_if:status,cancelled,rejected|nullable|string',
         ]);
-        
+
+        if ($request->status === $appointment->status) {
+            return redirect()->back()->with('error', 'Appointment is already ' . $request->status . '.');
+        }
+
+        if (!$appointment->canTransitionTo($request->status)) {
+            return redirect()->back()->with('error', 'Appointment status cannot be changed from "' . $appointment->status . '" to "' . $request->status . '".');
+        }
+
         $oldStatus = $appointment->status;
         $appointment->update([
             'status' => $request->status,
@@ -80,15 +91,43 @@ class AppointmentController extends Controller
 
     public function reschedule(Request $request, Appointment $appointment)
     {
+        if (!in_array($appointment->status, ['pending', 'confirmed'])) {
+            return redirect()->back()->with('error', 'Only pending or confirmed appointments can be rescheduled.');
+        }
+
         $request->validate([
             'appointment_date' => 'required|date|after:today',
-            'appointment_time' => 'required',
+            'appointment_time' => 'required|date_format:H:i',
         ]);
-        
+
+        $doctor = $appointment->doctor()->with('user')->first();
+
+        if (!$doctor || !$doctor->user->is_active) {
+            return redirect()->back()->with('error', 'This doctor is currently unavailable.');
+        }
+
+        $weekday = strtolower(Carbon::parse($request->appointment_date)->format('l'));
+        $availableDays = $doctor->available_days
+            ? array_map('strtolower', array_map('trim', explode(',', $doctor->available_days)))
+            : [];
+
+        if (!empty($availableDays) && !in_array($weekday, $availableDays)) {
+            return redirect()->back()->with('error', 'The doctor is not available on the selected day.');
+        }
+
+        $startTime = $doctor->available_from ? Carbon::parse($doctor->available_from)->format('H:i') : '09:00';
+        $endTime = $doctor->available_to ? Carbon::parse($doctor->available_to)->format('H:i') : '17:00';
+        $requestedTime = Carbon::parse($request->appointment_time)->format('H:i');
+
+        if ($requestedTime < $startTime || $requestedTime >= $endTime) {
+            return redirect()->back()->with('error', 'The selected time is outside the doctor\'s working hours.');
+        }
+
         // Check for double booking
         $exists = Appointment::where('doctor_id', $appointment->doctor_id)
             ->where('appointment_date', $request->appointment_date)
             ->where('appointment_time', $request->appointment_time)
+            ->where('id', '!=', $appointment->id)
             ->where('status', '!=', 'cancelled')
             ->exists();
             
@@ -107,6 +146,14 @@ class AppointmentController extends Controller
 
     public function destroy(Appointment $appointment)
     {
+        if ($appointment->status === 'completed') {
+            return redirect()->back()->with('error', 'Completed appointments cannot be deleted. They are part of the medical and financial audit trail.');
+        }
+
+        if ($appointment->payment) {
+            return redirect()->back()->with('error', 'Appointments with payments cannot be deleted. Refund this payment or keep the record for financial auditing.');
+        }
+
         $appointment->delete();
         return redirect()->route('admin.appointments.index')
             ->with('success', 'Appointment deleted successfully.');

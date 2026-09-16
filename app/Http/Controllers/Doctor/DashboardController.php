@@ -46,12 +46,18 @@ class DashboardController extends Controller
         
         // Weekly appointment chart data
         $chartData = [];
+        $startDate = Carbon::now()->subDays(6)->startOfDay();
+
+        $appointmentsByDay = Appointment::where('doctor_id', $doctor->id)
+            ->where('appointment_date', '>=', $startDate->toDateString())
+            ->selectRaw('appointment_date as date, COUNT(*) as total')
+            ->groupBy('appointment_date')
+            ->pluck('total', 'date');
+
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::now()->subDays($i);
             $chartData['labels'][] = $date->format('D, M d');
-            $chartData['appointments'][] = Appointment::where('doctor_id', $doctor->id)
-                ->whereDate('appointment_date', $date)
-                ->count();
+            $chartData['appointments'][] = (int) ($appointmentsByDay[$date->format('Y-m-d')] ?? 0);
         }
         
         return view('doctor.dashboard', compact(

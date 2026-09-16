@@ -1,74 +1,129 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Clinic Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A full-featured, production-style clinic/hospital management system built with **Laravel 12**. It connects healthcare providers (admins & doctors) with patients through online appointment booking, digital medical records, invoicing, payments, and PDF reporting.
 
-## About Laravel
+## Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### Patients (Customers)
+- Self-registration with **email verification** and secure password reset
+- Online appointment booking with live doctor availability & 30-minute time slots
+- View / cancel / reschedule appointments
+- Medical history with diagnoses, prescriptions, vitals & BMI
+- Pay consultation fees online (card / online / insurance / cash) with automatic PDF invoices
+- Real-time notifications (booking confirmations, status updates, payments)
+- Full profile & password management
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Doctors (Providers)
+- Role dashboard with today's / upcoming / pending appointments
+- Confirm or complete appointments, record cancellations
+- Create & update medical records (diagnosis, symptoms, vitals)
+- Write prescriptions per medical record
+- Browse patient medical histories; manage own profile
+- Receive notifications for new bookings & reschedules
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Administrators
+- Complete doctor / patient / department management with activate-deactivate toggles
+- All-appointments management: status changes, rescheduling, search & filters
+- **Book appointments on behalf of patients**
+- Full **billing & payments** panel with refunds and PDF invoice downloads
+- Revenue & appointment analytics dashboard (last 7 days)
+- PDF reports: appointment summaries, revenue by year/month, doctor workloads
+- Email-based staff account setup
 
-## Learning Laravel
+## Technology Stack
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- **Backend:** Laravel 12 (PHP 8.2+), MySQL
+- **Frontend:** Blade templates, Bootstrap 5, Font Awesome, Chart.js, SweetAlert2, jQuery
+- **PDF:** Barryvdh/laravel-dompdf
+- **Build:** Vite (Laravel Breeze asset pipeline)
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Installation
 
-## Laravel Sponsors
+### Requirements
+- PHP >= 8.2
+- Composer
+- MySQL (or MariaDB)
+- Node.js & npm
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Setup
+```bash
+# 1. Install PHP dependencies
+composer install
 
-### Premium Partners
+# 2. Environment configuration
+copy .env.example .env        # Windows
+php artisan key:generate
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# 3. Configure your database in .env, then:
+php artisan migrate --seed
 
-## Contributing
+# 4. Install & build front-end assets
+npm install
+npm run build
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+# 5. Serve the application
+php artisan serve
+```
 
-## Code of Conduct
+> The repository also ships a ready-made database dump (`clinic_system.sql`). Import it into a `clinic_system` MySQL database if you prefer to start with demo records.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Demo Credentials
+| Role     | Email                       | Password |
+| -------- | --------------------------- | -------- |
+| Admin    | admin@clinicsystem.com      | password |
+| Doctor   | james.wilson@clinic.com     | password |
+| Patient  | emily.johnson@email.com     | password |
 
-## Security Vulnerabilities
+> **Local mail:** registration & password-reset emails are sent via SMTP. Configure `MAIL_*` values in `.env` (e.g. a Gmail app password) so verification emails can be delivered.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Email Features
+
+- Registration requires **email verification** (6-digit code, 10 min expiry, resendable)
+- **Password reset** via email code with name + role confirmation
+- SMTP-based mails with branded Blade templates
+
+## Security
+
+- Role-based middleware (`admin`, `doctor`, `patient`) protects all routes
+- Ownership checks prevent patients/doctors from accessing other users' data
+- Email verification gate for patient registration
+- No-cache headers on all web responses; session invalidation on logout
+- CSRF protection on all forms; validated inputs throughout
+
+## Project Structure
+
+```
+app/
+  Http/Controllers/
+    AuthController.php        # registration, login, verification, reset
+    NotificationController.php
+    PaymentController.php     # billing & invoice engine
+    Admin/                    # dashboard, doctors, patients, appointments,
+                              # departments, reports, profile + patient booking
+    Doctor/                   # dashboard, appointments, medical records, profile
+    Patient/                  # dashboard, appointments, profile, medical history
+  Models/                     # User, Doctor, Patient, Appointment, Department,
+                              # MedicalRecord, Prescription, Schedule, Payment,
+                              # Invoice, Notification
+database/migrations/          # full schema
+database/seeders/             # departments, users, appointments
+resources/views/              # Blade views for every role
+routes/web.php                # all application routes
+```
+
+## Roles & Permissions
+
+| Capability                     | Patient | Doctor | Admin |
+| ------------------------------ | :-----: | :----: | :---: |
+| Book / cancel / reschedule     |   ✅    |        |   ✅  |
+| Manage appointments status     |         |   ✅   |   ✅  |
+| Medical records & prescriptions|         |   ✅   |   ✅  |
+| Patients & doctors management  |         |        |   ✅  |
+| Departments management         |         |        |   ✅  |
+| Billing / payments / invoices  |   ✅    |        |   ✅  |
+| PDF reports                    |         |        |   ✅  |
+| Notifications                  |   ✅    |   ✅   |   ✅  |
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-
-
-# Clinic Management System
-
-A Laravel-based Clinic Management System for managing:
-
-- Patients
-- Doctors
-- Appointments
-- Prescriptions
-- Billing
-- Reports
-- User Roles
-
-Built with Laravel.
+MIT License. This project is provided for demonstration and production use.

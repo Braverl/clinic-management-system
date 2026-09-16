@@ -37,37 +37,60 @@ class AppointmentController extends Controller
 
     public function getDoctorSchedule($doctorId, $date)
     {
-        $doctor = Doctor::findOrFail($doctorId);
-        
+        $doctor = Doctor::with('user')->findOrFail($doctorId);
+
+        if (!$doctor->user->is_active) {
+            return response()->json([
+                'available_slots' => [],
+                'fee' => 0,
+                'available_days' => [],
+                'message' => 'This doctor is currently unavailable.',
+            ]);
+        }
+
         // Get booked appointments for this doctor on this date
         $bookedTimes = Appointment::where('doctor_id', $doctorId)
             ->where('appointment_date', $date)
             ->where('status', '!=', 'cancelled')
             ->pluck('appointment_time')
-            ->map(function($time) {
+            ->map(function ($time) {
                 return Carbon::parse($time)->format('H:i');
             })
             ->toArray();
-        
-        // Generate available time slots (9 AM to 5 PM, 30 min slots)
+
+        // Doctor availability
+        $weekday = strtolower(Carbon::parse($date)->format('l'));
+        $availableDays = $doctor->available_days
+            ? array_map('strtolower', array_map('trim', explode(',', $doctor->available_days)))
+            : [];
+
+        $isAvailableOnDay = empty($availableDays) || in_array($weekday, $availableDays);
+
+        $startTime = $doctor->available_from ? Carbon::parse($doctor->available_from)->format('H:i') : '09:00';
+        $endTime = $doctor->available_to ? Carbon::parse($doctor->available_to)->format('H:i') : '17:00';
+
         $availableSlots = [];
-        $start = Carbon::parse($date . ' 09:00:00');
-        $end = Carbon::parse($date . ' 17:00:00');
-        
-        while ($start < $end) {
-            $slot = $start->format('H:i');
-            if (!in_array($slot, $bookedTimes)) {
-                $availableSlots[] = [
-                    'time' => $slot,
-                    'display' => $start->format('g:i A')
-                ];
+
+        if ($isAvailableOnDay) {
+            $start = Carbon::parse($date . ' ' . $startTime . ':00');
+            $end = Carbon::parse($date . ' ' . $endTime . ':00');
+
+            while ($start < $end) {
+                $slot = $start->format('H:i');
+                if (!in_array($slot, $bookedTimes)) {
+                    $availableSlots[] = [
+                        'time' => $slot,
+                        'display' => $start->format('g:i A'),
+                    ];
+                }
+                $start->addMinutes(30);
             }
-            $start->addMinutes(30);
         }
-        
+
         return response()->json([
             'available_slots' => $availableSlots,
-            'fee' => $doctor->consultation_fee
+            'fee' => $doctor->consultation_fee,
+            'available_days' => $doctor->available_days ? explode(',', $doctor->available_days) : [],
         ]);
     }
 
@@ -76,7 +99,7 @@ class AppointmentController extends Controller
         $request->validate([
             'doctor_id' => 'required|exists:doctors,id',
             'appointment_date' => 'required|date|after:today',
-            'appointment_time' => 'required',
+            'appointment_time' => 'required|date_format:H:i',
             'symptoms' => 'nullable|string|max:1000',
         ]);
         
@@ -89,6 +112,29 @@ class AppointmentController extends Controller
         
         if ($exists) {
             return redirect()->back()->with('error', 'This time slot is already booked. Please choose another time.');
+        }
+
+        // Validate doctor exists and is active
+        $doctor = Doctor::with('user')->findOrFail($request->doctor_id);
+
+        if (!$doctor->user->is_active) {
+            return redirect()->back()->with('error', 'This doctor is currently unavailable. Please choose another doctor.');
+        }
+        $weekday = strtolower(Carbon::parse($request->appointment_date)->format('l'));
+        $availableDays = $doctor->available_days
+            ? array_map('strtolower', array_map('trim', explode(',', $doctor->available_days)))
+            : [];
+
+        if (!empty($availableDays) && !in_array($weekday, $availableDays)) {
+            return redirect()->back()->with('error', 'Dr. ' . $doctor->user->name . ' is not available on this day. Please choose another date.');
+        }
+
+        $startTime = $doctor->available_from ? Carbon::parse($doctor->available_from)->format('H:i') : '09:00';
+        $endTime = $doctor->available_to ? Carbon::parse($doctor->available_to)->format('H:i') : '17:00';
+        $requestedTime = Carbon::parse($request->appointment_time)->format('H:i');
+
+        if ($requestedTime < $startTime || $requestedTime >= $endTime) {
+            return redirect()->back()->with('error', 'The selected time is outside the doctor\'s working hours.');
         }
         
         // Check if patient already has an appointment on this day
@@ -105,7 +151,6 @@ class AppointmentController extends Controller
         
         try {
             $appointment = Appointment::create([
-                'appointment_number' => 'APT-' . strtoupper(uniqid()),
                 'patient_id' => auth()->user()->patient->id,
                 'doctor_id' => $request->doctor_id,
                 'appointment_date' => $request->appointment_date,
@@ -191,7 +236,8 @@ class AppointmentController extends Controller
 
     public function reschedule($appointmentId)
     {
-        $appointment = Appointment::where('id', $appointmentId)
+        $appointment = Appointment::with('doctor.user')
+            ->where('id', $appointmentId)
             ->where('patient_id', auth()->user()->patient->id)
             ->firstOrFail();
         
@@ -200,9 +246,7 @@ class AppointmentController extends Controller
             return redirect()->back()->with('error', 'This appointment cannot be rescheduled.');
         }
         
-        $doctors = Doctor::with('user')->get();
-        
-        return view('patient.appointments.reschedule', compact('appointment', 'doctors'));
+        return view('patient.appointments.reschedule', compact('appointment'));
     }
 
     public function updateReschedule(Request $request, Appointment $appointment)
@@ -211,11 +255,39 @@ class AppointmentController extends Controller
         if ($appointment->patient_id != auth()->user()->patient->id) {
             abort(403);
         }
+
+        if (!in_array($appointment->status, ['pending', 'confirmed'])) {
+            return redirect()->back()->with('error', 'This appointment cannot be rescheduled.');
+        }
         
         $request->validate([
             'appointment_date' => 'required|date|after:today',
-            'appointment_time' => 'required',
+            'appointment_time' => 'required|date_format:H:i',
         ]);
+
+        $doctor = $appointment->doctor()->with('user')->first();
+
+        if (!$doctor || !$doctor->user->is_active) {
+            return redirect()->back()->with('error', 'This doctor is currently unavailable.');
+        }
+
+        // Validate doctor is available on the new day/time
+        $weekday = strtolower(Carbon::parse($request->appointment_date)->format('l'));
+        $availableDays = $doctor->available_days
+            ? array_map('strtolower', array_map('trim', explode(',', $doctor->available_days)))
+            : [];
+
+        if (!empty($availableDays) && !in_array($weekday, $availableDays)) {
+            return redirect()->back()->with('error', 'The selected doctor is not available on this new date.');
+        }
+
+        $startTime = $doctor->available_from ? Carbon::parse($doctor->available_from)->format('H:i') : '09:00';
+        $endTime = $doctor->available_to ? Carbon::parse($doctor->available_to)->format('H:i') : '17:00';
+        $requestedTime = Carbon::parse($request->appointment_time)->format('H:i');
+
+        if ($requestedTime < $startTime || $requestedTime >= $endTime) {
+            return redirect()->back()->with('error', 'The selected time is outside the doctor\'s working hours.');
+        }
         
         // Check for double booking
         $exists = Appointment::where('doctor_id', $appointment->doctor_id)

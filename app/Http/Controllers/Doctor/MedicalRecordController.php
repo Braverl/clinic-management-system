@@ -48,15 +48,19 @@ class MedicalRecordController extends Controller
         
         $request->validate([
             'diagnosis' => 'required|string',
+            'symptoms' => 'nullable|string',
             'treatment_plan' => 'nullable|string',
             'notes' => 'nullable|string',
             'weight' => 'nullable|numeric',
             'height' => 'nullable|numeric',
-            'blood_pressure' => 'nullable|string',
-            'temperature' => 'nullable|string',
+            'blood_pressure' => 'nullable|string|max:20',
+            'temperature' => 'nullable|string|max:20',
         ]);
         
-        $medicalRecord->update($request->all());
+        $medicalRecord->update($request->only([
+            'diagnosis', 'symptoms', 'treatment_plan', 'notes',
+            'weight', 'height', 'blood_pressure', 'temperature',
+        ]));
         
         return redirect()->route('doctor.medical-records.show', $medicalRecord)
             ->with('success', 'Medical record updated successfully.');

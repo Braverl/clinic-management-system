@@ -35,7 +35,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($patients as $patient)
+                        @forelse($patients as $patient)
                         <tr>
                             <td>{{ $patient->id }}</td>
                             <td class="text-center">
@@ -80,7 +80,19 @@
                                 </div>
                             </td>
                         </tr>
-                        @endforeach
+                        @empty
+                        <tr>
+                            <td colspan="9">
+                                @include('partials.empty-state', [
+                                    'icon' => 'users',
+                                    'title' => 'No Patients Yet',
+                                    'message' => 'Patients will appear here once they register or are added by an administrator.',
+                                    'actionUrl' => route('admin.patients.create'),
+                                    'actionLabel' => 'Add New Patient',
+                                ])
+                            </td>
+                        </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>

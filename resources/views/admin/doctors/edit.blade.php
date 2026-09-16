@@ -71,6 +71,30 @@
                         <textarea name="bio" rows="3" class="form-control">{{ old('bio', $doctor->bio) }}</textarea>
                     </div>
                     <div class="col-md-12 mb-3">
+                        <label class="form-label fw-bold">Availability Schedule</label>
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Available Days</label>
+                        <div class="row">
+                            @foreach(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as $day)
+                            <div class="col-auto">
+                                <div class="form-check">
+                                    <input type="checkbox" name="available_days[]" value="{{ $day }}" class="form-check-input" id="day{{ $day }}" {{ in_array($day, old('available_days', $availableDays)) ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="day{{ $day }}">{{ $day }}</label>
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Available From (time)</label>
+                        <input type="time" name="available_from" class="form-control" value="{{ old('available_from', $doctor->available_from ? \Carbon\Carbon::parse($doctor->available_from)->format('H:i') : '09:00') }}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Available Until (time)</label>
+                        <input type="time" name="available_to" class="form-control" value="{{ old('available_to', $doctor->available_to ? \Carbon\Carbon::parse($doctor->available_to)->format('H:i') : '17:00') }}">
+                    </div>
+                    <div class="col-md-12 mb-3">
                         <label class="form-label">Profile Image</label>
                         <input type="file" name="profile_image" class="form-control" accept="image/*">
                         @if($doctor->user->profile_image)

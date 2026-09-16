@@ -43,6 +43,8 @@ class ProfileController extends Controller
             'medical_history' => 'nullable|string|max:1000',
             'emergency_contact' => 'nullable|string|max:20',
             'emergency_contact_name' => 'nullable|string|max:255',
+            'insurance_provider' => 'nullable|string|max:255',
+            'insurance_number' => 'nullable|string|max:255',
             'profile_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
         
@@ -62,6 +64,8 @@ class ProfileController extends Controller
             'medical_history' => $request->medical_history,
             'emergency_contact' => $request->emergency_contact,
             'emergency_contact_name' => $request->emergency_contact_name,
+            'insurance_provider' => $request->insurance_provider,
+            'insurance_number' => $request->insurance_number,
         ]);
         
         // Handle profile image

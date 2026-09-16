@@ -61,9 +61,13 @@
         </div>
         @empty
         <div class="col-12">
-            <div class="alert alert-info text-center">
-                No departments found. <a href="{{ route('admin.departments.create') }}">Add your first department</a>
-            </div>
+            @include('partials.empty-state', [
+                'icon' => 'building',
+                'title' => 'No Departments Yet',
+                'message' => 'Departments organize doctors by specialty. Create your first department to structure the clinic.',
+                'actionUrl' => route('admin.departments.create'),
+                'actionLabel' => 'Add New Department',
+            ])
         </div>
         @endforelse
     </div>

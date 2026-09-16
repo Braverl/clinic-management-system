@@ -124,6 +124,23 @@ class DoctorController extends Controller
 
     public function destroy(Doctor $doctor)
     {
+        $activeAppointments = $doctor->appointments()
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->count();
+
+        if ($activeAppointments > 0) {
+            return redirect()->back()->with('error', 'Cannot delete doctor with ' . $activeAppointments . ' active appointment(s). Please cancel or complete them first.');
+        }
+
+        $medicalRecords = $doctor->medicalRecords()->count();
+        if ($medicalRecords > 0) {
+            return redirect()->back()->with('error', 'Cannot delete doctor with ' . $medicalRecords . ' medical record(s). Medical records must be retained for audit and patient care.');
+        }
+
+        if ($doctor->user->profile_image) {
+            Storage::disk('public')->delete($doctor->user->profile_image);
+        }
+
         $doctor->user->delete();
         return redirect()->route('admin.doctors.index')
             ->with('success', 'Doctor deleted successfully.');

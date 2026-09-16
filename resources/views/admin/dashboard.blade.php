@@ -97,6 +97,9 @@
                     <a href="{{ route('admin.appointments.index') }}" class="btn btn-info">
                         <i class="fas fa-calendar me-2"></i>View Appointments
                     </a>
+                    <a href="{{ route('admin.payments.index') }}" class="btn btn-success">
+                        <i class="fas fa-credit-card me-2"></i>Billing & Payments
+                    </a>
                     <a href="{{ route('admin.reports.index') }}" class="btn btn-warning">
                         <i class="fas fa-chart-line me-2"></i>Generate Reports
                     </a>
@@ -107,7 +110,6 @@
 </div>
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     const ctx = document.getElementById('appointmentsChart').getContext('2d');
     new Chart(ctx, {
@@ -120,12 +122,35 @@
                 borderColor: '#667eea',
                 backgroundColor: 'rgba(102, 126, 234, 0.1)',
                 tension: 0.4,
-                fill: true
+                fill: true,
+                yAxisID: 'y'
+            }, {
+                label: 'Revenue ($)',
+                data: {!! json_encode($chartData['revenue'] ?? [0, 0, 0, 0, 0, 0]) !!},
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.4,
+                fill: true,
+                yAxisID: 'y1'
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true
+            maintainAspectRatio: true,
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    position: 'left',
+                    title: { display: true, text: 'Appointments' }
+                },
+                y1: {
+                    beginAtZero: true,
+                    position: 'right',
+                    grid: { drawOnChartArea: false },
+                    title: { display: true, text: 'Revenue ($)' }
+                }
+            }
         }
     });
 </script>

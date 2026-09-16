@@ -74,6 +74,14 @@
                                 <label class="form-label">Emergency Contact Number</label>
                                 <input type="text" name="emergency_contact" class="form-control" value="{{ old('emergency_contact', $patient->emergency_contact) }}">
                             </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Insurance Provider</label>
+                                <input type="text" name="insurance_provider" class="form-control" value="{{ old('insurance_provider', $patient->insurance_provider) }}" placeholder="e.g. BlueCross, Aetna">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Insurance Number</label>
+                                <input type="text" name="insurance_number" class="form-control" value="{{ old('insurance_number', $patient->insurance_number) }}">
+                            </div>
                             <div class="col-12 mb-3">
                                 <label class="form-label">Profile Image</label>
                                 <input type="file" name="profile_image" class="form-control" accept="image/*">

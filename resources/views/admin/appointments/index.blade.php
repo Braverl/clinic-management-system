@@ -102,7 +102,13 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="7" class="text-center">No appointments found.</td>
+                            <td colspan="7">
+                                @include('partials.empty-state', [
+                                    'icon' => 'calendar-times',
+                                    'title' => 'No Appointments Found',
+                                    'message' => 'There are no appointments matching your criteria. Try adjusting the filters or check back later.',
+                                ])
+                            </td>
                         </tr>
                         @endforelse
                     </tbody>

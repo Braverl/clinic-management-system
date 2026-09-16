@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Appointment Details')
+@section('title', 'Appointment Details - ' . $patient->user->name)
 
 @section('content')
 <div class="container mt-4">
@@ -14,11 +14,10 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <!-- Status Bar -->
                     <div class="mb-4">
                         <div class="progress" style="height: 10px;">
-                            <div class="progress-bar bg-{{ $appointment->status == 'pending' ? 'warning' : ($appointment->status == 'confirmed' ? 'info' : ($appointment->status == 'completed' ? 'success' : 'danger')) }}" 
-                                 style="width: {{ $appointment->status == 'pending' ? '25' : ($appointment->status == 'confirmed' ? '50' : ($appointment->status == 'completed' ? '100' : '0')) }}%">
+                            <div class="progress-bar bg-{{ $appointment->status === 'pending' ? 'warning' : ($appointment->status === 'confirmed' ? 'info' : ($appointment->status === 'completed' ? 'success' : 'danger')) }}"
+                                 style="width: {{ $appointment->status === 'pending' ? '25' : ($appointment->status === 'confirmed' ? '50' : ($appointment->status === 'completed' ? '100' : '0')) }}%">
                             </div>
                         </div>
                         <div class="d-flex justify-content-between mt-2">
@@ -27,10 +26,14 @@
                             <small>Completed</small>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="text-muted">Doctor Name</label>
+                            <label class="text-muted">Patient</label>
+                            <p class="fw-bold">{{ $patient->user->name }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted">Doctor</label>
                             <p class="fw-bold">Dr. {{ $appointment->doctor->user->name }}</p>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -38,11 +41,15 @@
                             <p class="fw-bold">{{ $appointment->doctor->specialization }}</p>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="text-muted">Appointment Date</label>
+                            <label class="text-muted">Consultation Fee</label>
+                            <p class="fw-bold text-success">${{ number_format($appointment->doctor->consultation_fee, 2) }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted">Date</label>
                             <p class="fw-bold">{{ \Carbon\Carbon::parse($appointment->appointment_date)->format('l, F d, Y') }}</p>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="text-muted">Appointment Time</label>
+                            <label class="text-muted">Time</label>
                             <p class="fw-bold">{{ \Carbon\Carbon::parse($appointment->appointment_time)->format('g:i A') }}</p>
                         </div>
                         <div class="col-12 mb-3">
@@ -52,8 +59,8 @@
                         <div class="col-12 mb-3">
                             <label class="text-muted">Status</label>
                             <p>
-                                <span class="badge bg-{{ $appointment->status == 'pending' ? 'warning' : ($appointment->status == 'confirmed' ? 'info' : ($appointment->status == 'completed' ? 'success' : 'danger')) }} p-2">
-                                    {{ ucfirst($appointment->status) }}
+                                <span class="badge bg-{{ $appointment->status === 'pending' ? 'warning' : ($appointment->status === 'confirmed' ? 'info' : ($appointment->status === 'completed' ? 'success' : 'danger')) }} p-2 text-capitalize">
+                                    {{ $appointment->status }}
                                 </span>
                             </p>
                         </div>
@@ -64,7 +71,7 @@
                         </div>
                         @endif
                     </div>
-                    
+
                     @if($appointment->medicalRecord)
                     <div class="alert alert-info mt-3">
                         <h6><i class="fas fa-file-medical me-2"></i>Medical Record</h6>
@@ -78,52 +85,46 @@
                         @endforeach
                     </div>
                     @endif
-                    
-                    <div class="d-flex justify-content-between mt-4">
-                        <a href="{{ route('patient.appointments.index') }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left me-2"></i>Back
-                        </a>
-                        <div>
-                            @if(in_array($appointment->status, ['pending', 'confirmed']))
-                            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">
-                                <i class="fas fa-times me-2"></i>Cancel Appointment
-                            </button>
-                            @endif
-                            @if(!$appointment->payment && $appointment->status == 'confirmed')
-                            <a href="{{ route('payments.create', $appointment) }}" class="btn btn-success">
-                                <i class="fas fa-credit-card me-2"></i>Pay Now
+
+                    <div class="alert {{ $appointment->payment ? 'alert-success' : 'alert-secondary' }} border-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1"><i class="fas fa-credit-card me-2"></i>Payment Status</h6>
+                                @if($appointment->payment)
+                                <span class="badge bg-{{ $appointment->payment->status === 'completed' ? 'success' : 'warning' }} text-capitalize">{{ $appointment->payment->status }}</span>
+                                <span class="ms-2"><strong>${{ number_format($appointment->payment->amount, 2) }}</strong></span>
+                                @else
+                                <span class="badge bg-secondary">Not Paid Yet</span>
+                                @endif
+                            </div>
+                            @if($appointment->payment && $appointment->payment->status === 'completed')
+                            <a href="{{ route('admin.payments.invoice', $appointment->payment) }}" class="btn btn-sm btn-success">
+                                <i class="fas fa-download me-1"></i>Invoice
                             </a>
                             @endif
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Cancel Modal -->
-<div class="modal fade" id="cancelModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form action="{{ route('patient.appointments.cancel', $appointment) }}" method="POST">
-                @csrf
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title">Cancel Appointment</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to cancel this appointment?</p>
-                    <div class="mb-3">
-                        <label>Reason for cancellation (optional)</label>
-                        <textarea name="cancellation_reason" class="form-control" rows="3"></textarea>
+                    @if($appointment->status === 'pending')
+                    <form action="{{ route('admin.appointments.update-status', $appointment) }}" method="POST" class="d-flex gap-2 mt-3">
+                        @csrf
+                        <input type="hidden" name="status" value="confirmed">
+                        <button type="submit" class="btn btn-success flex-fill">
+                            <i class="fas fa-check me-2"></i>Confirm Appointment
+                        </button>
+                    </form>
+                    @endif
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ route('admin.patients.appointments.index', $patient) }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back
+                        </a>
+                        <a href="{{ route('admin.patients.show', $patient) }}" class="btn btn-info">
+                            <i class="fas fa-user me-2"></i>View Patient
+                        </a>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>

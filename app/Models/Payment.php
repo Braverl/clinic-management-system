@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Concerns\GeneratesBusinessNumber;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Payment extends Model
 {
-    use HasFactory;
+    use HasFactory, GeneratesBusinessNumber;
+
+    protected static $businessNumberPrefix = 'PAY';
+    protected static $businessNumberColumn = 'payment_number';
 
     protected $fillable = [
         'payment_number', 'appointment_id', 'patient_id', 'amount',
@@ -17,15 +21,6 @@ class Payment extends Model
     protected $casts = [
         'amount' => 'decimal:2',
     ];
-
-    protected static function boot()
-    {
-        parent::boot();
-        
-        static::creating(function ($payment) {
-            $payment->payment_number = 'PAY-' . strtoupper(uniqid());
-        });
-    }
 
     public function appointment()
     {

@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Concerns\GeneratesBusinessNumber;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Invoice extends Model
 {
-    use HasFactory;
+    use HasFactory, GeneratesBusinessNumber;
+
+    protected static $businessNumberPrefix = 'INV';
+    protected static $businessNumberColumn = 'invoice_number';
 
     protected $fillable = [
         'invoice_number', 'payment_id', 'patient_id', 'subtotal',
@@ -21,15 +25,6 @@ class Invoice extends Model
         'tax' => 'decimal:2',
         'total' => 'decimal:2',
     ];
-
-    protected static function boot()
-    {
-        parent::boot();
-        
-        static::creating(function ($invoice) {
-            $invoice->invoice_number = 'INV-' . strtoupper(uniqid());
-        });
-    }
 
     public function payment()
     {
@@ -46,8 +41,13 @@ class Invoice extends Model
         return $this->status === 'paid';
     }
 
+    public function isRefunded()
+    {
+        return $this->status === 'refunded';
+    }
+
     public function isOverdue()
     {
-        return !$this->isPaid() && now()->gt($this->due_date);
+        return $this->status === 'unpaid' && now()->gt($this->due_date);
     }
 }

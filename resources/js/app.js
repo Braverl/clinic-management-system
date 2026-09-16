@@ -6,6 +6,9 @@ import 'sweetalert2/dist/sweetalert2.min.css';
 // SweetAlert2
 window.Swal = require('sweetalert2');
 
+// Chart.js (available globally for inline view scripts)
+window.Chart = Chart;
+
 // Global AJAX Setup
 $.ajaxSetup({
     headers: {
@@ -680,8 +683,23 @@ function isValidEmail(email) {
 
 // Play Notification Sound
 function playNotificationSound() {
-    const audio = new Audio('/sounds/notification.mp3');
-    audio.play().catch(e => console.log('Audio play failed:', e));
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContext();
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+        oscillator.frequency.value = 880;
+        oscillator.type = 'sine';
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        oscillator.start();
+        oscillator.stop(ctx.currentTime + 0.4);
+        setTimeout(() => ctx.close(), 500);
+    } catch (e) {
+        console.log('Audio play failed:', e);
+    }
 }
 
 // Format Currency

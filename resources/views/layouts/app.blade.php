@@ -11,12 +11,8 @@
     <meta http-equiv="Cache-Control" content="no-store">
     <title>@yield('title', 'Clinic Management System')</title>
     
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- SweetAlert2 -->
-    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
@@ -135,6 +131,41 @@
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav ms-auto">
+                        <li class="nav-item dropdown me-2">
+                            <a class="nav-link dropdown-toggle position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-bell"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge" id="notificationBadge" style="display: none;">0</span>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-end notification-menu p-0 shadow-lg border-0" aria-labelledby="notificationDropdown" style="width: 360px;">
+                                <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+                                    <strong><i class="fas fa-bell me-1"></i>Notifications</strong>
+                                    <a href="{{ route('notifications.index') }}" class="small text-primary">View All</a>
+                                </div>
+                                <div class="notification-list" style="max-height: 380px; overflow-y: auto;">
+                                    @php $recentNotifications = auth()->user()->notifications()->latest()->limit(8)->get(); @endphp
+                                    @forelse($recentNotifications as $n)
+                                    <a href="{{ $n->link ?? route('notifications.index') }}" class="dropdown-item border-bottom notification-item py-3">
+                                        <div class="d-flex align-items-start">
+                                            <i class="fas fa-{{ $n->type === 'success' ? 'check-circle text-success' : ($n->type === 'warning' ? 'exclamation-triangle text-warning' : ($n->type === 'error' ? 'times-circle text-danger' : 'info-circle text-info')) }} me-2 mt-1"></i>
+                                            <div class="flex-grow-1">
+                                                <div class="{{ $n->is_read ? '' : 'fw-bold' }}">{{ $n->title }}</div>
+                                                <small class="text-muted d-block">{{ \Illuminate\Support\Str::limit($n->message, 70) }}</small>
+                                                <small class="text-muted">{{ $n->created_at->diffForHumans() }}</small>
+                                                @unless($n->is_read)
+                                                <span class="badge bg-primary ms-1">New</span>
+                                                @endunless
+                                            </div>
+                                        </div>
+                                    </a>
+                                    @empty
+                                    <div class="text-center py-4 text-muted">
+                                        <i class="fas fa-bell-slash fa-2x mb-2 d-block"></i>
+                                        No notifications
+                                    </div>
+                                    @endforelse
+                                </div>
+                            </div>
+                        </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                                 @if(auth()->user()->profile_image)
@@ -190,13 +221,17 @@
                         ['url' => route('admin.patients.index'), 'icon' => 'fas fa-users', 'label' => 'Patients'],
                         ['url' => route('admin.appointments.index'), 'icon' => 'fas fa-calendar-check', 'label' => 'Appointments'],
                         ['url' => route('admin.departments.index'), 'icon' => 'fas fa-building', 'label' => 'Departments'],
+                        ['url' => route('admin.payments.index'), 'icon' => 'fas fa-credit-card', 'label' => 'Billing & Payments'],
                         ['url' => route('admin.reports.index'), 'icon' => 'fas fa-chart-line', 'label' => 'Reports'],
+                        ['url' => route('notifications.index'), 'icon' => 'fas fa-bell', 'label' => 'Notifications'],
                         ['url' => route('admin.profile.index'), 'icon' => 'fas fa-user-shield', 'label' => 'My Profile'],
                     ];
                 } elseif(auth()->user()->isDoctor()) {
                     $sidebarLinks = [
                         ['url' => route('doctor.dashboard'), 'icon' => 'fas fa-tachometer-alt', 'label' => 'Dashboard'],
                         ['url' => route('doctor.appointments.index'), 'icon' => 'fas fa-calendar-check', 'label' => 'Appointments'],
+                        ['url' => route('doctor.medical-records.index'), 'icon' => 'fas fa-notes-medical', 'label' => 'Medical Records'],
+                        ['url' => route('notifications.index'), 'icon' => 'fas fa-bell', 'label' => 'Notifications'],
                         ['url' => route('doctor.profile.index'), 'icon' => 'fas fa-user-md', 'label' => 'My Profile'],
                     ];
                 } elseif(auth()->user()->isPatient()) {
@@ -204,7 +239,9 @@
                         ['url' => route('patient.dashboard'), 'icon' => 'fas fa-tachometer-alt', 'label' => 'Dashboard'],
                         ['url' => route('patient.appointments.index'), 'icon' => 'fas fa-calendar-check', 'label' => 'My Appointments'],
                         ['url' => route('patient.appointments.book'), 'icon' => 'fas fa-plus-circle', 'label' => 'Book Appointment'],
+                        ['url' => route('patient.payments.index'), 'icon' => 'fas fa-credit-card', 'label' => 'My Bills & Payments'],
                         ['url' => route('patient.medical-history'), 'icon' => 'fas fa-file-medical', 'label' => 'Medical History'],
+                        ['url' => route('notifications.index'), 'icon' => 'fas fa-bell', 'label' => 'Notifications'],
                         ['url' => route('patient.profile.index'), 'icon' => 'fas fa-user-circle', 'label' => 'Profile'],
                     ];
                 }
@@ -246,6 +283,13 @@
                     @if(session('error'))
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+                    
+                    @if(session('info'))
+                        <div class="alert alert-info alert-dismissible fade show" role="alert">
+                            <i class="fas fa-info-circle me-2"></i>{{ session('info') }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     @endif
@@ -304,6 +348,13 @@
                     </div>
                 @endif
                 
+                @if(session('info'))
+                    <div class="alert alert-info alert-dismissible fade show m-3" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>{{ session('info') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                @endif
+                
                 @if($errors->any())
                     <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
                         <ul class="mb-0">
@@ -323,8 +374,6 @@
     @endauth
 
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
     <script>
@@ -410,6 +459,26 @@
         
         resetSessionTimer();
         $(document).on('mousemove keypress click scroll', resetSessionTimer);
+
+        // Notification unread count polling
+        const updateNotificationBadge = () => {
+            $.ajax({
+                url: '{{ route("notifications.unread-count") }}',
+                method: 'GET',
+                success: function(response) {
+                    const badge = $('#notificationBadge');
+                    if (response.count > 0) {
+                        badge.text(response.count > 9 ? '9+' : response.count);
+                        badge.show();
+                    } else {
+                        badge.hide();
+                    }
+                }
+            });
+        };
+
+        updateNotificationBadge();
+        setInterval(updateNotificationBadge, 30000);
 
         
     // Prevent back button after logout

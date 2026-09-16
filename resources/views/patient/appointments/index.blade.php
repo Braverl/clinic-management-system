@@ -26,6 +26,7 @@
         <th>Date</th>
         <th>Time</th>
         <th>Status</th>
+        <th>Payment</th>
         <th>Actions</th>
     </tr>
 </thead>
@@ -52,14 +53,32 @@
             </span>
         </td>
         <td>
-            <a href="{{ route('patient.appointments.show', $apt) }}" class="btn btn-sm btn-info">
+            @if($apt->payment)
+                <span class="badge bg-{{ $apt->payment->status === 'completed' ? 'success' : 'warning' }} text-capitalize">{{ $apt->payment->status }}</span>
+            @else
+                <span class="badge bg-secondary">Unpaid</span>
+            @endif
+        </td>
+        <td>
+            <div class="btn-group btn-group-sm">
+            <a href="{{ route('patient.appointments.show', $apt) }}" class="btn btn-info">
                 <i class="fas fa-eye"></i> View
             </a>
             @if(in_array($apt->status, ['pending', 'confirmed']))
-            <button type="button" class="btn btn-sm btn-danger cancel-appointment" data-id="{{ $apt->id }}" data-number="{{ $apt->appointment_number }}">
+            <button type="button" class="btn btn-warning cancel-appointment" data-id="{{ $apt->id }}" data-number="{{ $apt->appointment_number }}">
                 <i class="fas fa-times"></i> Cancel
             </button>
             @endif
+            @if(!$apt->payment && in_array($apt->status, ['confirmed', 'completed']))
+            <a href="{{ route('patient.payments.create', $apt) }}" class="btn btn-success">
+                <i class="fas fa-credit-card"></i> Pay
+            </a>
+            @elseif($apt->payment && $apt->payment->status === 'completed')
+            <a href="{{ route('patient.payments.show', $apt->payment) }}" class="btn btn-outline-primary">
+                <i class="fas fa-receipt"></i> Bill
+            </a>
+            @endif
+            </div>
         </td>
     </tr>
     @endforeach

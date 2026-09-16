@@ -74,7 +74,15 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="9" class="text-center">No doctors found. <a href="{{ route('admin.doctors.create') }}">Add your first doctor</a></td>
+                            <td colspan="9">
+                                @include('partials.empty-state', [
+                                    'icon' => 'user-md',
+                                    'title' => 'No Doctors Yet',
+                                    'message' => 'Add your first doctor to start accepting patient appointments.',
+                                    'actionUrl' => route('admin.doctors.create'),
+                                    'actionLabel' => 'Add New Doctor',
+                                ])
+                            </td>
                         </tr>
                         @endforelse
                     </tbody>

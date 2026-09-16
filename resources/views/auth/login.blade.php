@@ -74,7 +74,7 @@
                         <small class="text-muted">Demo Credentials:</small><br>
                         <small class="text-muted">Admin: admin@clinicsystem.com / password</small><br>
                         <small class="text-muted">Doctor: james.wilson@clinic.com / password</small><br>
-                        <small class="text-muted">Patient: john.smith@email.com / password</small>
+                        <small class="text-muted">Patient: emily.johnson@email.com / password</small>
                     </div>
                 </div>
             </div>
@@ -93,7 +93,7 @@
         } else if (role === 'doctor') {
             emailField.value = 'james.wilson@clinic.com';
         } else if (role === 'patient') {
-            emailField.value = 'john.smith@email.com';
+            emailField.value = 'emily.johnson@email.com';
         } else {
             emailField.value = '';
         }

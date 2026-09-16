@@ -62,7 +62,15 @@ class AppointmentController extends Controller
             'status' => 'required|in:confirmed,completed,cancelled',
             'cancellation_reason' => 'required_if:status,cancelled|nullable|string',
         ]);
-        
+
+        if ($request->status === $appointment->status) {
+            return redirect()->back()->with('error', 'Appointment is already ' . $request->status . '.');
+        }
+
+        if (!$appointment->canTransitionTo($request->status)) {
+            return redirect()->back()->with('error', 'Appointment status cannot be changed from "' . $appointment->status . '" to "' . $request->status . '".');
+        }
+
         $appointment->update([
             'status' => $request->status,
             'cancellation_reason' => $request->cancellation_reason,
@@ -113,8 +121,8 @@ class AppointmentController extends Controller
             ]
         );
         
-        // Update appointment status to completed if not already
-        if ($appointment->status != 'completed') {
+        // Update appointment status to completed if confirmed (respects state machine)
+        if ($appointment->status === 'confirmed') {
             $appointment->update(['status' => 'completed']);
         }
         
@@ -136,10 +144,18 @@ class AppointmentController extends Controller
             'duration' => 'required|string',
             'instructions' => 'nullable|string',
         ]);
-        
+
+        // Security: prescription must be attached to this appointment's medical record
+        $medicalRecord = MedicalRecord::where('id', $request->medical_record_id)
+            ->where('appointment_id', $appointment->id)
+            ->first();
+
+        if (!$medicalRecord) {
+            return redirect()->back()->with('error', 'Invalid medical record for this appointment.');
+        }
+
         Prescription::create([
-            'prescription_number' => 'RX-' . strtoupper(uniqid()),
-            'medical_record_id' => $request->medical_record_id,
+            'medical_record_id' => $medicalRecord->id,
             'medication_name' => $request->medication_name,
             'dosage' => $request->dosage,
             'frequency' => $request->frequency,
@@ -153,14 +169,23 @@ class AppointmentController extends Controller
     public function patientHistory($patientId)
     {
         $doctor = auth()->user()->doctor;
-        
+
+        $patient = \App\Models\Patient::with('user')->findOrFail($patientId);
+
+        // Privacy check: doctor may only view patients they have an appointment with
+        $hasRelationship = \App\Models\Appointment::where('doctor_id', $doctor->id)
+            ->where('patient_id', $patientId)
+            ->exists();
+
+        if (!$hasRelationship) {
+            abort(403, 'You can only view the history of your own patients.');
+        }
+
         $medicalRecords = MedicalRecord::where('patient_id', $patientId)
             ->where('doctor_id', $doctor->id)
             ->with(['appointment', 'prescriptions'])
             ->orderBy('created_at', 'desc')
             ->get();
-        
-        $patient = \App\Models\Patient::with('user')->findOrFail($patientId);
         
         return view('doctor.patients.history', compact('medicalRecords', 'patient'));
     }

@@ -7,6 +7,12 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="fas fa-user me-2"></i>Patient Details</h2>
         <div>
+            <a href="{{ route('admin.patients.appointments.create', $patient) }}" class="btn btn-primary">
+                <i class="fas fa-calendar-plus me-2"></i>Book Appointment
+            </a>
+            <a href="{{ route('admin.patients.appointments.index', $patient) }}" class="btn btn-info">
+                <i class="fas fa-calendar-check me-2"></i>Appointments
+            </a>
             <a href="{{ route('admin.patients.edit', $patient) }}" class="btn btn-warning">
                 <i class="fas fa-edit me-2"></i>Edit
             </a>

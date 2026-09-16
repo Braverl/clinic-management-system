@@ -21,8 +21,10 @@ class DashboardController extends Controller
             ->get();
         
         $pastAppointments = Appointment::where('patient_id', $patient->id)
-            ->where('appointment_date', '<', Carbon::today())
-            ->orWhere('status', 'completed')
+            ->where(function ($query) {
+                $query->where('appointment_date', '<', Carbon::today())
+                    ->orWhere('status', 'completed');
+            })
             ->with('doctor.user')
             ->orderBy('appointment_date', 'desc')
             ->limit(5)

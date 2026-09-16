@@ -19,7 +19,7 @@
                             <select name="doctor_id" id="doctor_id" class="form-control" required>
                                 <option value="">-- Choose Doctor --</option>
                                 @foreach($doctors as $doctor)
-                                <option value="{{ $doctor->id }}" data-image="{{ $doctor->user->profile_image ? Storage::url($doctor->user->profile_image) : '' }}" data-fee="{{ $doctor->consultation_fee }}">
+                                <option value="{{ $doctor->id }}" data-image="{{ $doctor->user->profile_image ? Storage::url($doctor->user->profile_image) : '' }}" data-fee="{{ $doctor->consultation_fee }}" data-days="{{ $doctor->available_days }}">
                                     Dr. {{ $doctor->user->name }} - {{ $doctor->specialization }} 
                                     (Fee: ${{ number_format($doctor->consultation_fee, 2) }})
                                 </option>
@@ -41,6 +41,13 @@
                         </div>
                         
                         <div class="mb-3">
+                            <label class="form-label fw-bold">Available Days</label>
+                            <div id="availableDays" class="text-muted">
+                                <small>Select a doctor to see their available days.</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
                             <label class="form-label fw-bold">Appointment Date</label>
                             <input type="date" name="appointment_date" id="appointment_date" class="form-control" min="{{ date('Y-m-d', strtotime('+1 day')) }}" required>
                         </div>
@@ -50,7 +57,7 @@
                             <select name="appointment_time" id="appointment_time" class="form-control" required>
                                 <option value="">Select doctor and date first</option>
                             </select>
-                            <small class="text-muted">Available slots: 9:00 AM - 5:00 PM (30 min intervals)</small>
+                            <small class="text-muted">Available slots are based on the doctor's working hours (30 min intervals)</small>
                         </div>
                         
                         <div class="mb-3" id="fee_display" style="display: none;">
@@ -96,10 +103,17 @@ $(document).ready(function() {
         const doctorSpecialization = selectedOption.text().split(' - ')[1]?.split(' (Fee')[0] || '';
         const doctorImage = selectedOption.data('image');
         const doctorFee = selectedOption.data('fee');
+        const doctorDays = selectedOption.data('days');
         
         if (doctorId) {
             $('#doctorPreviewName').text(doctorName);
             $('#doctorPreviewSpecialization').text(doctorSpecialization);
+            
+            if (doctorDays) {
+                $('#availableDays').html(doctorDays.split(',').map(day => `<span class="badge bg-primary me-1">${day}</span>`).join(''));
+            } else {
+                $('#availableDays').html('<small class="text-muted">No fixed days set</small>');
+            }
             
             if (doctorImage) {
                 $('#doctorPreviewImage').html(`<img src="${doctorImage}" width="60" height="60" class="rounded-circle object-fit-cover">`);
@@ -125,7 +139,7 @@ $(document).ready(function() {
             $('#appointment_time').html('<option>Loading available slots...</option>');
             
             $.ajax({
-                url: `/patient/get-doctor-schedule/${doctorId}/${date}`,
+                url: `/get-doctor-schedule/${doctorId}/${date}`,
                 method: 'GET',
                 success: function(response) {
                     let slotsHtml = '<option value="">Select Time</option>';
