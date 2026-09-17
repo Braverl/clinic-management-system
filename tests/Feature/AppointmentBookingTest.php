@@ -141,4 +141,28 @@ class AppointmentBookingTest extends TestCase
             ->get(route('patient.appointments.show', $otherAppointment))
             ->assertForbidden();
     }
+
+    public function test_generated_appointment_numbers_are_unique(): void
+    {
+        $patient = $this->makePatient();
+        $doctor = $this->makeDoctor();
+        $date = now()->addDay()->format('Y-m-d');
+
+        $numbers = [];
+
+        foreach (['09:00', '09:30', '10:00'] as $time) {
+            $appointment = Appointment::create([
+                'patient_id' => $patient->id,
+                'doctor_id' => $doctor->id,
+                'appointment_date' => $date,
+                'appointment_time' => $time,
+                'status' => 'pending',
+            ]);
+
+            $numbers[] = $appointment->appointment_number;
+            $this->assertStringStartsWith('APT', $appointment->appointment_number);
+        }
+
+        $this->assertCount(3, array_unique($numbers));
+    }
 }

@@ -137,6 +137,11 @@ class DoctorController extends Controller
             return redirect()->back()->with('error', 'Cannot delete doctor with ' . $medicalRecords . ' medical record(s). Medical records must be retained for audit and patient care.');
         }
 
+        $payments = $doctor->payments()->count();
+        if ($payments > 0) {
+            return redirect()->back()->with('error', 'Cannot delete doctor with ' . $payments . ' payment record(s). Financial records must be retained for auditing.');
+        }
+
         if ($doctor->user->profile_image) {
             Storage::disk('public')->delete($doctor->user->profile_image);
         }

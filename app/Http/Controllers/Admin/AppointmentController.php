@@ -135,11 +135,18 @@ class AppointmentController extends Controller
             return redirect()->back()->with('error', 'This time slot is already booked.');
         }
         
-        $appointment->update([
-            'appointment_date' => $request->appointment_date,
-            'appointment_time' => $request->appointment_time,
-            'status' => 'pending',
-        ]);
+        try {
+            $appointment->update([
+                'appointment_date' => $request->appointment_date,
+                'appointment_time' => $request->appointment_time,
+                'status' => 'pending',
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            if (($e->errorInfo[1] ?? null) === 1062) {
+                return redirect()->back()->with('error', 'This time slot has just been booked. Please choose a different time.');
+            }
+            throw $e;
+        }
         
         return redirect()->back()->with('success', 'Appointment rescheduled successfully.');
     }
@@ -152,6 +159,10 @@ class AppointmentController extends Controller
 
         if ($appointment->payment) {
             return redirect()->back()->with('error', 'Appointments with payments cannot be deleted. Refund this payment or keep the record for financial auditing.');
+        }
+
+        if ($appointment->medicalRecord) {
+            return redirect()->back()->with('error', 'Appointments with medical records cannot be deleted. Medical records must be retained for audit and patient care.');
         }
 
         $appointment->delete();

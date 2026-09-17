@@ -13,7 +13,7 @@ class SearchController extends Controller
     public function globalSearch(Request $request): JsonResponse
     {
         $request->validate([
-            'query' => 'required|string|min:1',
+            'query' => 'required|string|min:1|max:60',
         ]);
 
         $query = $request->input('query');
@@ -52,13 +52,15 @@ class SearchController extends Controller
                 ]);
 
             $results['appointments'] = Appointment::with(['patient.user', 'doctor.user'])
-                ->whereHas('patient.user', function ($q) use ($query) {
-                    $q->where('name', 'LIKE', "%{$query}%");
+                ->where(function ($q) use ($query) {
+                    $q->whereHas('patient.user', function ($uq) use ($query) {
+                        $uq->where('name', 'LIKE', "%{$query}%");
+                    })
+                    ->orWhereHas('doctor.user', function ($uq) use ($query) {
+                        $uq->where('name', 'LIKE', "%{$query}%");
+                    })
+                    ->orWhere('appointment_number', 'LIKE', "%{$query}%");
                 })
-                ->orWhereHas('doctor.user', function ($q) use ($query) {
-                    $q->where('name', 'LIKE', "%{$query}%");
-                })
-                ->orWhere('appointment_number', 'LIKE', "%{$query}%")
                 ->limit(10)
                 ->get()
                 ->map(fn ($appointment) => [
@@ -93,10 +95,13 @@ class SearchController extends Controller
 
                 $results['appointments'] = Appointment::with('patient.user')
                     ->where('doctor_id', $doctor->id)
-                    ->whereHas('patient.user', function ($q) use ($query) {
-                        $q->where('name', 'LIKE', "%{$query}%");
+                    ->where(function ($q) use ($query) {
+                        $q->whereHas('patient.user', function ($uq) use ($query) {
+                            $uq->where('name', 'LIKE', "%{$query}%")
+                                ->orWhere('email', 'LIKE', "%{$query}%");
+                        })
+                        ->orWhere('appointment_number', 'LIKE', "%{$query}%");
                     })
-                    ->orWhere('appointment_number', 'LIKE', "%{$query}%")
                     ->limit(10)
                     ->get()
                     ->map(fn ($appointment) => [
@@ -132,10 +137,12 @@ class SearchController extends Controller
 
                 $results['appointments'] = Appointment::with('doctor.user')
                     ->where('patient_id', $patient->id)
-                    ->whereHas('doctor.user', function ($q) use ($query) {
-                        $q->where('name', 'LIKE', "%{$query}%");
+                    ->where(function ($q) use ($query) {
+                        $q->whereHas('doctor.user', function ($uq) use ($query) {
+                            $uq->where('name', 'LIKE', "%{$query}%");
+                        })
+                        ->orWhere('appointment_number', 'LIKE', "%{$query}%");
                     })
-                    ->orWhere('appointment_number', 'LIKE', "%{$query}%")
                     ->limit(10)
                     ->get()
                     ->map(fn ($appointment) => [

@@ -98,4 +98,15 @@ class AuthTest extends TestCase
 
         $response->assertRedirect(route('login'));
     }
+
+    public function test_verify_email_is_rate_limited(): void
+    {
+        for ($i = 0; $i < 5; $i++) {
+            $this->post(route('verify.email'), ['verification_code' => '000000']);
+        }
+
+        $response = $this->post(route('verify.email'), ['verification_code' => '000000']);
+
+        $response->assertTooManyRequests();
+    }
 }

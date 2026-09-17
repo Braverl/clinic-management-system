@@ -46,8 +46,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 // Email verification
 Route::middleware('guest')->group(function () {
     Route::get('/verify-email', [AuthController::class, 'showVerificationForm'])->name('verify.email.form');
-    Route::post('/verify-email', [AuthController::class, 'verifyEmail'])->name('verify.email');
-    Route::get('/resend-verification', [AuthController::class, 'resendVerificationCode'])->name('resend.verification');
+    Route::post('/verify-email', [AuthController::class, 'verifyEmail'])->name('verify.email')->middleware('throttle:5,1');
+    Route::get('/resend-verification', [AuthController::class, 'resendVerificationCode'])->name('resend.verification')->middleware('throttle:3,10');
 });
 
 // Password reset

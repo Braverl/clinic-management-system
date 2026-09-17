@@ -245,15 +245,22 @@ class PatientController extends Controller
             return redirect()->back()->with('error', 'The selected time is outside the doctor\'s working hours.');
         }
 
-        $appointment = Appointment::create([
-            'patient_id' => $patient->id,
-            'doctor_id' => $request->doctor_id,
-            'appointment_date' => $request->appointment_date,
-            'appointment_time' => $request->appointment_time,
-            'symptoms' => $request->symptoms,
-            'status' => 'pending',
-            'is_emergency' => $request->has('is_emergency'),
-        ]);
+        try {
+            $appointment = Appointment::create([
+                'patient_id' => $patient->id,
+                'doctor_id' => $request->doctor_id,
+                'appointment_date' => $request->appointment_date,
+                'appointment_time' => $request->appointment_time,
+                'symptoms' => $request->symptoms,
+                'status' => 'pending',
+                'is_emergency' => $request->has('is_emergency'),
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            if (($e->errorInfo[1] ?? null) === 1062) {
+                return redirect()->back()->with('error', 'This time slot has just been booked. Please choose a different time.');
+            }
+            throw $e;
+        }
 
         // Notifications
         $doctor->user->notifications()->create([

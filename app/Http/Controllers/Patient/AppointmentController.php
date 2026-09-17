@@ -150,15 +150,23 @@ class AppointmentController extends Controller
         DB::beginTransaction();
         
         try {
-            $appointment = Appointment::create([
-                'patient_id' => auth()->user()->patient->id,
-                'doctor_id' => $request->doctor_id,
-                'appointment_date' => $request->appointment_date,
-                'appointment_time' => $request->appointment_time,
-                'symptoms' => $request->symptoms,
-                'status' => 'pending',
-                'is_emergency' => $request->has('is_emergency'),
-            ]);
+            try {
+                $appointment = Appointment::create([
+                    'patient_id' => auth()->user()->patient->id,
+                    'doctor_id' => $request->doctor_id,
+                    'appointment_date' => $request->appointment_date,
+                    'appointment_time' => $request->appointment_time,
+                    'symptoms' => $request->symptoms,
+                    'status' => 'pending',
+                    'is_emergency' => $request->has('is_emergency'),
+                ]);
+            } catch (\Illuminate\Database\QueryException $e) {
+                DB::rollBack();
+                if ($this->isDuplicateSlotError($e)) {
+                    return redirect()->back()->with('error', 'This time slot has just been booked by another patient. Please choose a different time.');
+                }
+                throw $e;
+            }
             
             // Create notification for doctor
             $doctor = Doctor::find($request->doctor_id);
@@ -181,7 +189,6 @@ class AppointmentController extends Controller
             
             return redirect()->route('patient.appointments.index')
                 ->with('success', 'Appointment booked successfully. Waiting for confirmation.');
-                
         } catch (\Exception $e) {
             DB::rollback();
             return redirect()->back()->with('error', 'Something went wrong. Please try again.');
@@ -304,11 +311,18 @@ class AppointmentController extends Controller
         $oldDate = $appointment->appointment_date;
         $oldTime = $appointment->appointment_time;
         
-        $appointment->update([
-            'appointment_date' => $request->appointment_date,
-            'appointment_time' => $request->appointment_time,
-            'status' => 'pending',
-        ]);
+        try {
+            $appointment->update([
+                'appointment_date' => $request->appointment_date,
+                'appointment_time' => $request->appointment_time,
+                'status' => 'pending',
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($this->isDuplicateSlotError($e)) {
+                return redirect()->back()->with('error', 'This time slot has just been booked by another patient. Please choose a different time.');
+            }
+            throw $e;
+        }
         
         // Notify doctor
         $appointment->doctor->user->notifications()->create([
@@ -320,5 +334,10 @@ class AppointmentController extends Controller
         
         return redirect()->route('patient.appointments.show', $appointment)
             ->with('success', 'Appointment rescheduled successfully.');
+    }
+
+    private function isDuplicateSlotError(\Illuminate\Database\QueryException $e): bool
+    {
+        return ($e->errorInfo[1] ?? null) === 1062;
     }
 }

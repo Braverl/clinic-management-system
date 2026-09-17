@@ -20,10 +20,29 @@ trait GeneratesBusinessNumber
         }
 
         static::creating(function ($model) use ($prefix) {
-            if (empty($model->{$model->getBusinessNumberColumn()})) {
-                $model->{$model->getBusinessNumberColumn()} = static::generateBusinessNumber($prefix);
+            $column = $model->getBusinessNumberColumn();
+
+            if (!empty($model->{$column})) {
+                return;
             }
+
+            $model->{$column} = static::generateUniqueBusinessNumber($prefix);
         });
+    }
+
+    protected static function generateUniqueBusinessNumber(string $prefix): string
+    {
+        $column = (new static)->getBusinessNumberColumn();
+
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $candidate = static::generateBusinessNumber($prefix);
+
+            if (!static::query()->where($column, $candidate)->exists()) {
+                return $candidate;
+            }
+        }
+
+        return static::generateBusinessNumber($prefix);
     }
 
     protected function getBusinessNumberColumn(): string

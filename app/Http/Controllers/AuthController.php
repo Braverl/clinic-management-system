@@ -103,7 +103,10 @@ class AuthController extends Controller
             return back()->withErrors(['verification_code' => 'Verification code has expired. Please register again.']);
         }
         
-        if ($request->verification_code != $cachedCode) {
+        if ((string) $request->verification_code !== (string) $cachedCode) {
+            if ($this->registerVerificationAttempt('email_verification_attempts_' . $email, 'email_verification_' . $email)) {
+                return back()->withErrors(['verification_code' => 'Too many invalid attempts. The verification code has been invalidated. Please register again to receive a new code.']);
+            }
             return back()->withErrors(['verification_code' => 'Invalid verification code.']);
         }
         
@@ -124,6 +127,7 @@ class AuthController extends Controller
         
         // Clear temporary data
         Cache::forget('email_verification_' . $email);
+        Cache::forget('email_verification_attempts_' . $email);
         session()->forget(['pending_registration', 'verification_email']);
         
         // Auto login
@@ -236,7 +240,10 @@ class AuthController extends Controller
         }
         
         // Verify the code and role match
-        if ($request->verification_code != $cachedData['code']) {
+        if ((string) $request->verification_code !== (string) $cachedData['code']) {
+            if ($this->registerVerificationAttempt('password_reset_attempts_' . $email, 'password_reset_' . $email)) {
+                return back()->withErrors(['verification_code' => 'Too many invalid attempts. The reset code has been invalidated. Please request a new one.']);
+            }
             return back()->withErrors(['verification_code' => 'Invalid verification code.']);
         }
         
@@ -247,6 +254,7 @@ class AuthController extends Controller
         // Mark as verified and proceed to reset password
         session(['reset_verified' => true]);
         Cache::forget('password_reset_' . $email);
+        Cache::forget('password_reset_attempts_' . $email);
         
         return redirect()->route('password.reset.form');
     }
@@ -375,6 +383,19 @@ class AuthController extends Controller
     private function generateVerificationCode()
     {
         return str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    }
+    
+    private function registerVerificationAttempt(string $attemptsKey, string $codeKey): bool
+    {
+        $attempts = (int) Cache::get($attemptsKey, 0) + 1;
+        Cache::put($attemptsKey, $attempts, 600);
+        
+        if ($attempts >= 5) {
+            Cache::forget($codeKey);
+            return true;
+        }
+        
+        return false;
     }
     
     private function redirectToDashboard()
